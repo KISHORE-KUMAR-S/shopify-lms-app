@@ -1,5 +1,6 @@
 packages:
   - 'extensions/*'
+  - 'server'
 shamefullyHoist: true
 allowBuilds:
   '@parcel/watcher': true

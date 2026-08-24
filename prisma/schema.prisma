@@ -9,8 +9,86 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// One row per Shopify store that has installed the app. All LMS data
+/// (courses, students, enrollments) hangs off this record so that data is
+/// scoped to the authenticated shop.
+model Store {
+  id           String    @id @default(uuid())
+  shop         String    @unique
+  scope        String?
+  installedAt  DateTime  @default(now())
+  uninstalledAt DateTime?
+
+  courses  Course[]
+  students Student[]
+
+  @@index([shop])
+}
+
+enum CourseStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Course {
+  id             String       @id @default(uuid())
+  storeId        String
+  title          String
+  description    String?
+  instructorName String
+  category       String?
+  /// Duration in hours.
+  duration       Int?
+  status         CourseStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+
+  @@index([storeId])
+}
+
+/// Students are scoped per store (not global): each merchant manages their own
+/// student roster, and email uniqueness is per store so two shops can both
+/// have jane@example.com.
+model Student {
+  id        String   @id @default(uuid())
+  storeId   String
+  name      String
+  email     String
+  createdAt DateTime @default(now())
+
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+
+  @@unique([storeId, email])
+  @@index([storeId])
+}
+
+enum EnrollmentStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Enrollment {
+  id         String           @id @default(uuid())
+  studentId  String
+  courseId   String
+  status     EnrollmentStatus @default(IN_PROGRESS)
+  enrolledAt DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  /// Database-level duplicate-enrollment guard (spec §6).
+  @@unique([studentId, courseId])
+  @@index([courseId])
 }
 
 model Session {

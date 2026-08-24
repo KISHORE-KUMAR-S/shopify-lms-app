@@ -6,6 +6,7 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { recordInstall } from "./models/store.server";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -16,6 +17,13 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
+  hooks: {
+    // Runs once per successful OAuth exchange, before the merchant is
+    // redirected into the embedded app.
+    afterAuth: async ({ session }) => {
+      await recordInstall({ shop: session.shop, scope: session.scope });
+    },
+  },
   future: {
     expiringOfflineAccessTokens: true,
   },

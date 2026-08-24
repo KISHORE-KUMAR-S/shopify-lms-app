@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { recordUninstall } from "../models/store.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, session, topic } = await authenticate.webhook(request);
@@ -12,6 +13,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (session) {
     await db.session.deleteMany({ where: { shop } });
   }
+
+  // Always mark the store uninstalled, even on a repeat delivery where the
+  // session is already gone — this is what makes the Express API start
+  // rejecting requests for this shop.
+  await recordUninstall(shop);
 
   return new Response();
 };
