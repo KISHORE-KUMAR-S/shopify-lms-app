@@ -5,6 +5,10 @@ import { authenticateShop } from "./authenticate.js";
 import { env } from "./env.js";
 import { errorHandler, notFoundHandler } from "./errors.js";
 import { prisma } from "./prisma.js";
+import { coursesRouter } from "./routes/courses.js";
+import { dashboardRouter } from "./routes/dashboard.js";
+import { enrollmentsRouter } from "./routes/enrollments.js";
+import { studentsRouter } from "./routes/students.js";
 
 const app = express();
 
@@ -40,6 +44,11 @@ api.get("/me", (req, res) => {
     scope: req.store.scope,
   });
 });
+
+api.use("/courses", coursesRouter);
+api.use("/students", studentsRouter);
+api.use("/enrollments", enrollmentsRouter);
+api.use("/dashboard", dashboardRouter);
 
 app.use("/api", api);
 
