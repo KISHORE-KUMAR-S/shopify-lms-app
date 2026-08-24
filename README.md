@@ -235,3 +235,45 @@ Shopify:
 Internationalization:
 
 - [Internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
+
+---
+
+# LMS App (Courses & Enrollments)
+
+Shopify embedded Learning Management System: merchant manages courses, students, and enrollments from the Shopify admin.
+
+## Architecture
+
+- **Embedded app** (`app/`): React Router 7 + Polaris web components. Handles Shopify OAuth, session storage (Prisma → PostgreSQL), webhooks, and Admin GraphQL (shop info on the dashboard).
+- **REST API** (`server/`): standalone Express 5 service for LMS resources (courses, students, enrollments, dashboard aggregates). Authenticated per-request with App Bridge **session tokens** (JWT verified against the app secret; see `server/src/authenticate.ts`).
+- **Database**: PostgreSQL via Prisma (`prisma/schema.prisma`). Shared by both services.
+- **Data fetching**: TanStack Query on the frontend (`app/lib/hooks.ts`), calling the API through `app/lib/api.client.ts` (attaches a fresh session token per request; retries once on token expiry).
+
+### Schema decisions
+
+- `Store` — one row per installed shop; soft-deleted on uninstall (courses survive reinstalls).
+- `Student` — **scoped per store** (not global): unique on `(storeId, email)`, so two shops can each have the same student email.
+- `Enrollment` — unique on `(studentId, courseId)` at the database level; duplicate enrollments return HTTP 409 with a friendly message.
+
+## Setup
+
+1. `npm install`
+2. Copy `.env.example` → `.env`; fill `DATABASE_URL` (your PostgreSQL) and `SHOPIFY_API_SECRET` (Partner dashboard).
+3. `npx prisma migrate deploy`
+4. Run both processes:
+   - `npm run dev` — Shopify app (embedded UI, OAuth)
+   - `npm run api:dev` — Express REST API on `API_PORT` (default 3001)
+
+## API
+
+All `/api/*` routes require `Authorization: Bearer <session token>`. Error shape: `{ "error": { "code", "message", "details?" } }`.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/dashboard` | Aggregate counts + recent enrollments |
+| GET/POST | `/api/courses` | List (page/search) / create |
+| GET/PUT/DELETE | `/api/courses/:id` | Detail (with enrollments) / update / delete |
+| GET/POST | `/api/students` | List / create (409 on duplicate email) |
+| GET | `/api/students/:id` | Student dashboard payload |
+| GET/POST | `/api/enrollments` | List / enroll (409 on duplicate) |
+| PUT | `/api/enrollments/:id/status` | `IN_PROGRESS` / `COMPLETED` |
