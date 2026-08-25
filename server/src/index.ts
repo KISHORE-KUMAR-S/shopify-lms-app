@@ -69,8 +69,8 @@ app.use("/api", api);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const server = app.listen(env.API_PORT, () => {
-  console.log(`[api] listening on http://localhost:${env.API_PORT}`);
+const server = app.listen(env.PORT, () => {
+  console.log(`[api] listening on http://localhost:${env.PORT}`);
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
