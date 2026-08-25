@@ -15,23 +15,13 @@ const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "100kb" }));
 
-// Cloudflare quick tunnels (`shopify app dev`'s default) mint a new random
-// subdomain on every restart, so hardcoding one in API_CORS_ORIGINS goes
-// stale immediately. In development, trust any *.trycloudflare.com origin
-// instead of chasing the URL by hand; production still requires an explicit
-// allowlist.
-const trycloudflareOrigin = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
-
+// Auth here is a bearer token attached per-request (not an ambient cookie),
+// so an open CORS policy doesn't expose anything a stolen/leaked token
+// wouldn't already expose. Simplifies away tunnel-URL churn and per-deploy
+// allowlist maintenance.
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (env.corsOrigins.includes(origin)) return callback(null, true);
-      if (!env.isProduction && trycloudflareOrigin.test(origin)) {
-        return callback(null, true);
-      }
-      callback(new Error(`Origin ${origin} is not allowed.`));
-    },
+    origin: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type"],
     maxAge: 86400,
