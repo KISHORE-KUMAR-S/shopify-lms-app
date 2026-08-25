@@ -12,6 +12,7 @@
     "start": "react-router-serve ./build/server/index.js",
     "docker-start": "npm run setup && npm run start",
     "setup": "prisma generate && prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
     "api:dev": "npm run dev --workspace server",
     "api:build": "npm run build --workspace server",
     "api:start": "npm run start --workspace server",
@@ -60,6 +61,7 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "graphql-config": "^5.1.1",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^6.3.6"
   },
