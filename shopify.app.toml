@@ -2,7 +2,7 @@
 
 client_id = "46d052836bcf180c9506d07e6cfa5922"
 name = "lms_app"
-application_url = "https://example.com"
+application_url = "https://shopify-lms-app-frontend.onrender.com"
 embedded = true
 
 [access_scopes]
